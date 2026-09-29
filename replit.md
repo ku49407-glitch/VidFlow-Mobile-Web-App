@@ -1,10 +1,11 @@
-# [Project name]
+# VidFlow
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+VidFlow is a mobile-friendly media URL organizer that validates URL structure locally and keeps optional analysis history in the browser without downloading content.
 
 ## Run & Operate
 
 - `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
+- `pnpm --filter @workspace/vidflow run dev` — run the VidFlow web app
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
@@ -22,15 +23,21 @@ _Replace the heading above with the project's name, and this line with one sente
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/vidflow/src/App.tsx` — screen routing, URL validation, local history, and settings behavior
+- `artifacts/vidflow/src/index.css` — VidFlow visual theme and responsive layout
+- `attached_assets/Pasted--DOCTYPE-html-html-lang-en-head-meta-charset-UTF-8-meta_1790667334905.txt` — original HTML mockup
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- URL analysis is client-side only and uses the browser `URL` parser.
+- The app does not fetch, download, scrape, or bypass media platform restrictions.
+- Analysis history and settings are stored in browser local storage; no backend or account is required for the first release.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+- Home screen for safe structural URL checks with inline results
+- Downloads screen showing local analysis history and the authorized-content policy
+- Settings screen for accent selection, local-history retention, and reset
 
 ## User preferences
 

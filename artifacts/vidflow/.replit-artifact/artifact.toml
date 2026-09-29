@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "VidFlow"
+description = "A mobile-friendly media organizer that safely validates user-provided URLs, explains what can be analyzed, and keeps recent analysis history locally without downloading or bypassing protected content."
+version = "1.0.0"
+id = "artifacts/vidflow"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 19113
+
+[services.development]
+run = "pnpm --filter @workspace/vidflow run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/vidflow", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/vidflow/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "19113"
+BASE_PATH = "/"
