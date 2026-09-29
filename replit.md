@@ -30,14 +30,15 @@ VidFlow is a mobile-friendly media URL organizer that validates URL structure lo
 ## Architecture decisions
 
 - URL analysis is client-side only and uses the browser `URL` parser.
-- The app does not fetch, download, scrape, or bypass media platform restrictions.
-- Analysis history and settings are stored in browser local storage; no backend or account is required for the first release.
+- The app does not fetch, download, scrape, or bypass media platform restrictions; the queue is mock/demo data only.
+- Analysis history, demo queue state, and settings are stored in browser local storage; no backend or account is required for the first release.
 
 ## Product
 
 - Home screen for safe structural URL checks with inline results
-- Downloads screen showing local analysis history and the authorized-content policy
-- Settings screen for accent selection, local-history retention, and reset
+- Home result cards with safe demo metadata, format/quality selection, and queue actions
+- Downloads screen with queued, completed, paused, and failed demo items plus progress and controls
+- Settings screen for theme, accent, defaults, notifications, retention, about, privacy, terms, and reset
 
 ## User preferences
 
