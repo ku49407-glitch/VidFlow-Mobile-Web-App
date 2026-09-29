@@ -21,6 +21,7 @@ import {
   History,
   Info,
   Link2,
+  ListMusic,
   Moon,
   PanelLeft,
   Palette,
@@ -83,8 +84,18 @@ type AnalysisResult = {
   host: string;
   title: string;
   duration: string;
+  fileSize: string;
   thumbnail: string;
   message: string;
+};
+
+type PlaylistItem = {
+  id: string;
+  title: string;
+  duration: string;
+  format: 'MP4' | 'MP3';
+  quality: string;
+  size: string;
 };
 
 const HISTORY_KEY = 'vidflow-analysis-history';
@@ -107,10 +118,15 @@ const ACCENTS = [
 ];
 const FORMAT_OPTIONS = [
   { value: 'mp4', label: 'MP4 video' },
-  { value: 'webm', label: 'WebM video' },
   { value: 'mp3', label: 'MP3 audio' },
 ];
-const QUALITY_OPTIONS = ['720p', '1080p', '1440p', '320 kbps'];
+const QUALITY_OPTIONS = ['360p', '480p', '720p', '1080p'];
+const DEMO_PLAYLIST: PlaylistItem[] = [
+  { id: 'playlist-01', title: 'Opening sequence — demo', duration: '02:14', format: 'MP4', quality: '1080p', size: '18.6 MB' },
+  { id: 'playlist-02', title: 'Behind the scenes — demo', duration: '04:08', format: 'MP4', quality: '720p', size: '22.1 MB' },
+  { id: 'playlist-03', title: 'Creator notes — demo', duration: '01:32', format: 'MP3', quality: '480p', size: '4.7 MB' },
+  { id: 'playlist-04', title: 'Closing credits — demo', duration: '03:41', format: 'MP4', quality: '480p', size: '11.9 MB' },
+];
 const RESTRICTED_HOSTS = [
   'youtube.com',
   'youtu.be',
@@ -133,7 +149,13 @@ function readHistory(): AnalysisRecord[] {
 function readSettings(): Settings {
   try {
     const value = localStorage.getItem(SETTINGS_KEY);
-    return { ...DEFAULT_SETTINGS, ...(value ? JSON.parse(value) : {}) };
+    const parsed = value ? JSON.parse(value) : {};
+    return {
+      ...DEFAULT_SETTINGS,
+      ...parsed,
+      defaultFormat: parsed.defaultFormat === 'mp3' ? 'mp3' : 'mp4',
+      defaultQuality: QUALITY_OPTIONS.includes(parsed.defaultQuality) ? parsed.defaultQuality : DEFAULT_SETTINGS.defaultQuality,
+    };
   } catch {
     return DEFAULT_SETTINGS;
   }
@@ -156,7 +178,7 @@ function demoDownloads(): DownloadItem[] {
     {
       id: 'demo-completed',
       title: 'Brand story — sample',
-      format: 'WebM',
+      format: 'MP4',
       quality: '720p',
       size: '12.8 MB',
       status: 'completed',
@@ -168,7 +190,7 @@ function demoDownloads(): DownloadItem[] {
       id: 'demo-paused',
       title: 'Interview audio preview',
       format: 'MP3',
-      quality: '320 kbps',
+      quality: '480p',
       size: '8.1 MB',
       status: 'paused',
       progress: 64,
@@ -179,7 +201,7 @@ function demoDownloads(): DownloadItem[] {
       id: 'demo-failed',
       title: 'Campaign cut — sample',
       format: 'MP4',
-      quality: '1440p',
+      quality: '1080p',
       size: '—',
       status: 'failed',
       progress: 0,
@@ -227,10 +249,25 @@ function titleFromHost(host: string) {
   return `${name.charAt(0).toUpperCase()}${name.slice(1)} media preview`;
 }
 
+function sizeForSelection(format: string, quality: string) {
+  const sizes: Record<string, string> = {
+    'mp4-360p': '8.4 MB',
+    'mp4-480p': '12.1 MB',
+    'mp4-720p': '18.6 MB',
+    'mp4-1080p': '31.8 MB',
+    'mp3-360p': '3.1 MB',
+    'mp3-480p': '4.7 MB',
+    'mp3-720p': '6.8 MB',
+    'mp3-1080p': '9.2 MB',
+  };
+  return sizes[`${format}-${quality}`] ?? 'demo';
+}
+
 function AppShell({ children, currentPath }: { children: ReactNode; currentPath: string }) {
   const navItems = [
     { href: '/', label: 'Home', icon: FileSearch },
     { href: '/downloads', label: 'Downloads', icon: History },
+    { href: '/playlist', label: 'Playlist', icon: ListMusic },
     { href: '/settings', label: 'Settings', icon: Settings2 },
   ];
 
@@ -318,6 +355,7 @@ function ResultCard({
   const [format, setFormat] = useState(settings.defaultFormat);
   const [quality, setQuality] = useState(settings.defaultQuality);
   const isBlocked = result.kind === 'blocked';
+  const selectedSize = sizeForSelection(format, quality);
 
   return (
     <div className={`vf-result ${isBlocked ? 'vf-result-blocked' : ''}`} role="status" data-testid="card-analysis-result">
@@ -345,7 +383,7 @@ function ResultCard({
             <div className="vf-media-copy">
               <div className="vf-kicker">Demo metadata / authorized source</div>
               <h3>{result.title}</h3>
-              <p>{result.host} · {result.duration} · metadata only</p>
+              <p>{result.host} · {result.duration} · {selectedSize} · metadata only</p>
             </div>
           </div>
           <div className="vf-format-grid">
@@ -455,6 +493,7 @@ function Home({
         host: parsed.hostname,
         title: titleFromHost(parsed.hostname),
         duration: '03:42',
+        fileSize: sizeForSelection(settings.defaultFormat, settings.defaultQuality),
         thumbnail: 'demo',
         message: blocked ? 'This platform is not supported for downloading. VidFlow only works with authorized sources and never bypasses platform protections.' : 'The URL is structurally valid. The metadata below is a safe demo preview; VidFlow does not fetch the media behind this link.',
       });
@@ -568,12 +607,14 @@ function DownloadRow({
   onPause,
   onResume,
   onRetry,
+  onCancel,
   onDelete,
 }: {
   item: DownloadItem;
   onPause: (id: string) => void;
   onResume: (id: string) => void;
   onRetry: (id: string) => void;
+  onCancel: (id: string) => void;
   onDelete: (id: string) => void;
 }) {
   const isAudio = item.format.toLowerCase() === 'mp3';
@@ -584,6 +625,8 @@ function DownloadRow({
       : item.status === 'failed'
         ? <button type="button" className="vf-icon-button" onClick={() => onRetry(item.id)} aria-label={`Retry ${item.title}`}><RotateCcw size={15} /></button>
         : null;
+  const statusLabel = item.status === 'queued' ? 'downloading' : item.status;
+  const canCancel = item.status === 'queued' || item.status === 'paused';
 
   return (
     <div className="vf-download-row" data-testid={`row-download-${item.id}`}>
@@ -591,15 +634,16 @@ function DownloadRow({
       <div className="vf-download-main">
         <div className="vf-download-title-row">
           <div><h3>{item.title}</h3><p>{item.format} · {item.quality} · {item.size}</p></div>
-          <span className={`vf-status-badge vf-status-${item.status}`}>{item.status}</span>
+          <span className={`vf-status-badge vf-status-${item.status}`}>{statusLabel}</span>
         </div>
         <div className="vf-progress-track" aria-label={`${item.progress}% complete`} role="progressbar" aria-valuenow={item.progress} aria-valuemin={0} aria-valuemax={100}>
           <span style={{ width: `${item.progress}%` }} />
         </div>
         <div className="vf-download-footer">
-          <span>{item.status === 'completed' ? 'Demo item complete' : item.status === 'failed' ? 'Demo item could not be completed' : `${item.progress}% · ${formatTime(item.createdAt)}`}</span>
+          <span>{item.status === 'completed' ? 'Demo item complete' : item.status === 'failed' ? 'Demo item could not be completed' : `${item.status === 'queued' ? 'Downloading' : 'Paused'} · ${item.progress}%`}</span>
           <div className="vf-download-actions">
             {action}
+            {canCancel && <button type="button" className="vf-icon-button vf-icon-button-danger" onClick={() => onCancel(item.id)} aria-label={`Cancel ${item.title}`} title="Cancel"><X size={15} /></button>}
             <button type="button" className="vf-icon-button" onClick={() => onDelete(item.id)} aria-label={`Remove ${item.title}`}><Trash2 size={15} /></button>
           </div>
         </div>
@@ -613,6 +657,7 @@ function Downloads({
   onPause,
   onResume,
   onRetry,
+  onCancel,
   onDelete,
   onClear,
 }: {
@@ -620,11 +665,12 @@ function Downloads({
   onPause: (id: string) => void;
   onResume: (id: string) => void;
   onRetry: (id: string) => void;
+  onCancel: (id: string) => void;
   onDelete: (id: string) => void;
   onClear: () => void;
 }) {
   const sections: { key: DownloadStatus; label: string; description: string }[] = [
-    { key: 'queued', label: 'Download queue', description: 'Demo items waiting or in progress.' },
+    { key: 'queued', label: 'Active downloads', description: 'Download queue · demo items waiting or in progress.' },
     { key: 'completed', label: 'Completed downloads', description: 'Demo items that finished successfully.' },
     { key: 'paused', label: 'Paused downloads', description: 'Items waiting for you to resume them.' },
     { key: 'failed', label: 'Failed downloads', description: 'Demo items that need a retry or removal.' },
@@ -638,7 +684,7 @@ function Downloads({
           <h1 className="vf-page-title">Keep every state visible.</h1>
           <p className="vf-page-subtitle">A clear queue for authorized demo sources, with progress, pause, retry, and removal controls that work entirely in this browser.</p>
         </div>
-        <button type="button" className="vf-button vf-button-danger" onClick={onClear} disabled={downloads.length === 0} data-testid="button-clear-downloads"><Trash2 size={14} /> Clear history</button>
+        <button type="button" className="vf-button vf-button-danger" onClick={onClear} disabled={downloads.length === 0} data-testid="button-delete-download-history"><Trash2 size={14} /> Delete history</button>
       </header>
       <section className="vf-download-callout" aria-label="Download policy notice">
         <span className="vf-callout-icon" aria-hidden="true"><ShieldCheck size={19} /></span>
@@ -653,12 +699,104 @@ function Downloads({
                 <div><div className="vf-kicker">{section.description}</div><h2 id={`downloads-${section.key}`}>{section.label} <span className="vf-count">{items.length}</span></h2></div>
               </div>
               <div className="vf-card vf-download-list">
-                {items.length === 0 ? <div className="vf-download-empty"><Clock3 size={16} /><span>No {section.key} items right now.</span></div> : items.map((item) => <DownloadRow key={item.id} item={item} onPause={onPause} onResume={onResume} onRetry={onRetry} onDelete={onDelete} />)}
+                {items.length === 0 ? <div className="vf-download-empty"><Clock3 size={16} /><span>No {section.key} items right now.</span></div> : items.map((item) => <DownloadRow key={item.id} item={item} onPause={onPause} onResume={onResume} onRetry={onRetry} onCancel={onCancel} onDelete={onDelete} />)}
               </div>
             </section>
           );
         })}
       </div>
+    </div>
+  );
+}
+
+function Playlist({
+  downloads,
+  onQueuePlaylist,
+}: {
+  downloads: DownloadItem[];
+  onQueuePlaylist: (items: PlaylistItem[]) => string[];
+}) {
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [lastBatchIds, setLastBatchIds] = useState<string[]>([]);
+  const allSelected = selectedIds.length === DEMO_PLAYLIST.length;
+  const selectedItems = DEMO_PLAYLIST.filter((item) => selectedIds.includes(item.id));
+  const batchItems = downloads.filter((item) => lastBatchIds.includes(item.id));
+  const batchProgress = batchItems.length === 0
+    ? 0
+    : Math.round(batchItems.reduce((total, item) => total + item.progress, 0) / batchItems.length);
+  const batchComplete = batchItems.length > 0 && batchItems.every((item) => item.status === 'completed');
+
+  const toggleItem = (id: string) => {
+    setSelectedIds((current) => current.includes(id) ? current.filter((itemId) => itemId !== id) : [...current, id]);
+  };
+  const toggleAll = () => {
+    setSelectedIds(allSelected ? [] : DEMO_PLAYLIST.map((item) => item.id));
+  };
+  const queueSelected = () => {
+    if (selectedItems.length === 0) return;
+    setLastBatchIds(onQueuePlaylist(selectedItems));
+    setSelectedIds([]);
+  };
+
+  return (
+    <div className="vf-page">
+      <header className="vf-page-header">
+        <div>
+          <div className="vf-kicker">Playlist / demo set</div>
+          <h1 className="vf-page-title">Queue a whole story.</h1>
+          <p className="vf-page-subtitle">Choose authorized demo items from a playlist, then add them to the same local queue used by individual downloads.</p>
+        </div>
+      </header>
+      <section className="vf-card vf-playlist-card" aria-labelledby="playlist-heading">
+        <div className="vf-playlist-header">
+          <div className="vf-playlist-art" aria-hidden="true"><ListMusic size={24} /></div>
+          <div>
+            <div className="vf-kicker">Authorized demo playlist</div>
+            <h2 id="playlist-heading">Signal room sessions</h2>
+            <p>{DEMO_PLAYLIST.length} items · demo metadata only</p>
+          </div>
+        </div>
+        <div className="vf-playlist-toolbar">
+          <label className="vf-check-label">
+            <input type="checkbox" className="vf-checkbox" checked={allSelected} onChange={toggleAll} />
+            <span>Select all</span>
+          </label>
+          <span className="vf-selected-count">{selectedIds.length} selected</span>
+        </div>
+        <div className="vf-playlist-items">
+          {DEMO_PLAYLIST.map((item) => (
+            <label className="vf-playlist-item" key={item.id} data-selected={selectedIds.includes(item.id)}>
+              <input type="checkbox" className="vf-checkbox" checked={selectedIds.includes(item.id)} onChange={() => toggleItem(item.id)} />
+              <span className="vf-playlist-item-icon" aria-hidden="true">{item.format === 'MP3' ? <FileAudio size={16} /> : <FileVideo size={16} />}</span>
+              <span className="vf-playlist-item-copy"><strong>{item.title}</strong><span>{item.format} · {item.quality} · {item.duration} · {item.size}</span></span>
+              <CheckCircle2 size={15} className="vf-playlist-item-check" aria-hidden="true" />
+            </label>
+          ))}
+        </div>
+        <div className="vf-playlist-footer">
+          <div>
+            <strong>{selectedIds.length} of {DEMO_PLAYLIST.length} selected</strong>
+            <span>Items will be added as safe demo downloads.</span>
+          </div>
+          <button type="button" className="vf-button" onClick={queueSelected} disabled={selectedItems.length === 0} data-testid="button-download-selected">
+            <Download size={15} /> Download selected
+          </button>
+        </div>
+      </section>
+      {batchItems.length > 0 && (
+        <section className="vf-card vf-playlist-progress" aria-live="polite" data-testid="card-playlist-progress">
+          <div className="vf-playlist-progress-head">
+            <div><div className="vf-kicker">Queue progress</div><h2>{batchComplete ? 'Playlist demo complete.' : 'Playlist is downloading.'}</h2></div>
+            <strong>{batchProgress}%</strong>
+          </div>
+          <div className="vf-progress-track"><span style={{ width: `${batchProgress}%` }} /></div>
+          <p>{batchComplete ? 'Every selected item moved to Completed Downloads.' : `${batchItems.filter((item) => item.status === 'completed').length} of ${batchItems.length} items complete. Manage individual states in Downloads.`}</p>
+        </section>
+      )}
+      <section className="vf-download-callout" aria-label="Playlist policy notice">
+        <span className="vf-callout-icon" aria-hidden="true"><ShieldCheck size={19} /></span>
+        <div><h2>Playlist data is demo-only.</h2><p>VidFlow does not fetch playlist pages or protected content. These items model the experience for authorized sources without saving media bytes.</p></div>
+      </section>
     </div>
   );
 }
@@ -805,7 +943,8 @@ function Router() {
     setHistory((current) => [record, ...current].slice(0, 50));
   };
   const deleteRecord = (id: string) => setHistory((current) => current.filter((record) => record.id !== id));
-  const clearHistory = () => {
+  const clearDownloads = () => setDownloads([]);
+  const clearAllLocalData = () => {
     setHistory([]);
     setDownloads([]);
   };
@@ -815,7 +954,7 @@ function Router() {
       title: result.title,
       format: format.toUpperCase(),
       quality,
-      size: 'demo',
+      size: sizeForSelection(format, quality),
       status: 'queued',
       progress: 0,
       sourceUrl: result.url,
@@ -823,10 +962,26 @@ function Router() {
     };
     setDownloads((current) => [item, ...current]);
   };
+  const queuePlaylist = (items: PlaylistItem[]) => {
+    const created = items.map((playlistItem) => ({
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      title: playlistItem.title,
+      format: playlistItem.format,
+      quality: playlistItem.quality,
+      size: playlistItem.size,
+      status: 'queued' as const,
+      progress: 0,
+      sourceUrl: `https://media.example.com/playlist/${playlistItem.id}`,
+      createdAt: new Date().toISOString(),
+    }));
+    setDownloads((current) => [...created, ...current]);
+    return created.map((item) => item.id);
+  };
   const updateDownload = (id: string, next: Partial<DownloadItem>) => setDownloads((current) => current.map((item) => item.id === id ? { ...item, ...next } : item));
   const pauseDownload = (id: string) => updateDownload(id, { status: 'paused' });
   const resumeDownload = (id: string) => updateDownload(id, { status: 'queued' });
   const retryDownload = (id: string) => updateDownload(id, { status: 'queued', progress: 0 });
+  const cancelDownload = (id: string) => setDownloads((current) => current.filter((item) => item.id !== id));
   const deleteDownload = (id: string) => setDownloads((current) => current.filter((item) => item.id !== id));
 
   return (
@@ -834,8 +989,9 @@ function Router() {
       <AppShell currentPath={location}>
         <Switch>
           <Route path="/"><Home history={visibleHistory} downloads={downloads} settings={settings} onAdd={addRecord} onDelete={deleteRecord} onQueue={queueDownload} /></Route>
-          <Route path="/downloads"><Downloads downloads={downloads} onPause={pauseDownload} onResume={resumeDownload} onRetry={retryDownload} onDelete={deleteDownload} onClear={clearHistory} /></Route>
-          <Route path="/settings"><SettingsPage settings={settings} historyCount={history.length} downloadCount={downloads.length} onSettingsChange={setSettings} onReset={clearHistory} /></Route>
+          <Route path="/downloads"><Downloads downloads={downloads} onPause={pauseDownload} onResume={resumeDownload} onRetry={retryDownload} onCancel={cancelDownload} onDelete={deleteDownload} onClear={clearDownloads} /></Route>
+          <Route path="/playlist"><Playlist downloads={downloads} onQueuePlaylist={queuePlaylist} /></Route>
+          <Route path="/settings"><SettingsPage settings={settings} historyCount={history.length} downloadCount={downloads.length} onSettingsChange={setSettings} onReset={clearAllLocalData} /></Route>
           <Route component={NotFound} />
         </Switch>
       </AppShell>

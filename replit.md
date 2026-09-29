@@ -37,7 +37,8 @@ VidFlow is a mobile-friendly media URL organizer that validates URL structure lo
 
 - Home screen for safe structural URL checks with inline results
 - Home result cards with safe demo metadata, format/quality selection, and queue actions
-- Downloads screen with queued, completed, paused, and failed demo items plus progress and controls
+- Downloads screen with active, completed, paused, and failed demo items plus progress, pause/resume/cancel, retry, and delete-history controls
+- Playlist screen with selectable demo items, bulk queueing, and playlist queue progress
 - Settings screen for theme, accent, defaults, notifications, retention, about, privacy, terms, and reset
 
 ## User preferences

@@ -1284,6 +1284,11 @@ input:focus-visible {
   background: hsl(var(--accent) / .1);
 }
 
+.vf-icon-button-danger:hover {
+  color: hsl(var(--destructive));
+  background: hsl(var(--destructive) / .1);
+}
+
 .vf-download-empty {
   display: flex;
   gap: 8px;
@@ -1385,6 +1390,203 @@ input:focus-visible {
   line-height: 1.65;
 }
 
+.vf-playlist-card {
+  overflow: hidden;
+}
+
+.vf-playlist-header {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  padding: 22px;
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+.vf-playlist-art {
+  width: 54px;
+  height: 54px;
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid hsl(var(--accent) / .35);
+  border-radius: 14px;
+  color: hsl(var(--accent));
+  background:
+    linear-gradient(145deg, hsl(var(--accent) / .2), transparent),
+    hsl(var(--accent) / .06);
+}
+
+.vf-playlist-header h2 {
+  margin: 5px 0 4px;
+  font-size: 21px;
+  letter-spacing: -.035em;
+}
+
+.vf-playlist-header p {
+  margin: 0;
+  color: hsl(var(--muted-foreground));
+  font-size: 12px;
+}
+
+.vf-playlist-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 22px;
+  border-bottom: 1px solid hsl(var(--border));
+  background: hsl(var(--background) / .24);
+}
+
+.vf-check-label {
+  display: inline-flex;
+  gap: 9px;
+  align-items: center;
+  cursor: pointer;
+  color: hsl(var(--foreground));
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.vf-checkbox {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: hsl(var(--accent));
+  cursor: pointer;
+}
+
+.vf-selected-count {
+  color: hsl(var(--muted-foreground));
+  font-family: var(--app-font-mono);
+  font-size: 10px;
+}
+
+.vf-playlist-items {
+  padding: 4px 0;
+}
+
+.vf-playlist-item {
+  display: flex;
+  gap: 11px;
+  align-items: center;
+  padding: 13px 22px;
+  border-bottom: 1px solid hsl(var(--border));
+  cursor: pointer;
+  transition: background-color .2s ease;
+}
+
+.vf-playlist-item:last-child {
+  border-bottom: 0;
+}
+
+.vf-playlist-item:hover,
+.vf-playlist-item[data-selected='true'] {
+  background: hsl(var(--accent) / .06);
+}
+
+.vf-playlist-item-icon {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 8px;
+  color: hsl(var(--accent));
+  background: hsl(var(--accent) / .1);
+}
+
+.vf-playlist-item-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.vf-playlist-item-copy strong,
+.vf-playlist-item-copy span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vf-playlist-item-copy strong {
+  color: hsl(var(--foreground));
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.vf-playlist-item-copy span {
+  margin-top: 4px;
+  color: hsl(var(--muted-foreground));
+  font-family: var(--app-font-mono);
+  font-size: 9px;
+}
+
+.vf-playlist-item-check {
+  color: transparent;
+}
+
+.vf-playlist-item[data-selected='true'] .vf-playlist-item-check {
+  color: hsl(var(--accent));
+}
+
+.vf-playlist-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 18px 22px;
+  border-top: 1px solid hsl(var(--border));
+  background: hsl(var(--background) / .22);
+}
+
+.vf-playlist-footer strong,
+.vf-playlist-footer span {
+  display: block;
+}
+
+.vf-playlist-footer strong {
+  font-size: 12px;
+}
+
+.vf-playlist-footer span {
+  margin-top: 4px;
+  color: hsl(var(--muted-foreground));
+  font-size: 11px;
+}
+
+.vf-playlist-progress {
+  margin-top: 18px;
+  padding: 19px 22px;
+}
+
+.vf-playlist-progress-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 15px;
+}
+
+.vf-playlist-progress-head h2 {
+  margin: 6px 0 0;
+  font-size: 17px;
+}
+
+.vf-playlist-progress-head > strong {
+  color: hsl(var(--accent));
+  font-family: var(--app-font-mono);
+  font-size: 18px;
+}
+
+.vf-playlist-progress .vf-progress-track {
+  margin-top: 17px;
+}
+
+.vf-playlist-progress p {
+  margin: 10px 0 0;
+  color: hsl(var(--muted-foreground));
+  font-size: 12px;
+}
+
 @keyframes vf-spin {
   to { transform: rotate(360deg); }
 }
@@ -1456,5 +1658,22 @@ input:focus-visible {
 
   .vf-download-title-row .vf-status-badge {
     margin-top: 8px;
+  }
+
+  .vf-playlist-header,
+  .vf-playlist-toolbar,
+  .vf-playlist-item,
+  .vf-playlist-footer {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
+  .vf-playlist-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .vf-playlist-footer .vf-button {
+    width: 100%;
   }
 }
